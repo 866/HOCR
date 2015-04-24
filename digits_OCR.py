@@ -24,8 +24,8 @@ def validate_point((x, y), img):
 def blobs_filter(blobs):
     blobs_average_points = sum([len(blob) for blob in blobs])/len(blobs)
     if (blobs_average_points*0.3 < 20):
-        return 20 #wee need at least 20 pts
-    return [blob for blob in blobs if len(blob) >= blobs_average_points*0.3]
+        return 20 #we need at least 20 pts
+    return [blob for blob in blobs if len(blob) >= blobs_average_points*0.2]
 
 def find_bounds(blob_points): # finds rectangular bound of the blob
     top, left = blob_points[0]
@@ -95,22 +95,22 @@ def blob_center_of_mass(blob_points):
     return sum_x/len(blob_points), sum_y/len(blob_points)
 
 def reproduce_blob(blob_points):
-    scale_factor = 1.4
     top, left, bottom, right = find_bounds(blob_points)
     center_x, center_y = blob_center_of_mass(blob_points)
     if bottom-top > right - left:
-        max_side = (bottom-top)
+        max_side = bottom-top
     else:
-        max_side = (right-left)
-    tmp_img = np.zeros((math.ceil(max_side*scale_factor), math.ceil(max_side*scale_factor), 1), np.uint8)
-    dx = math.floor(0.5*scale_factor*max_side-center_x)
-    dy = math.floor(0.5*scale_factor*max_side-center_y)
+        max_side = right-left
+    tmp_img = np.zeros((max_side, max_side, 1), np.uint8)
+    dx = math.floor(0.5*max_side-center_x)
+    dy = math.floor(0.5*max_side-center_y)
     for x, y in blob_points:
         if validate_point((x+dx, y+dy), tmp_img):
-            tmp_img[(x+dx, y+dy)] = 255
-    # plt.imshow(tmp_img[:, :, 0])
-    # plt.show()
-    return binary(caffe.io.resize_image(tmp_img, (28, 28)), 0)
+            tmp_img[x+dx, y+dy, 0] = 255
+    tmp_img = caffe.io.resize_image(tmp_img, (20, 20))
+    ret_img = np.zeros((28, 28, 1), np.uint8)
+    ret_img[4:24, 4:24] = tmp_img
+    return ret_img
 
 # def reproduce_blob(blob_points):
 #     img = np.zeros((28, 28, 1), np.uint8)
@@ -149,7 +149,7 @@ print "Resize: "+str(height)+"x"+str(width)+" to 28x"+str(resized_width)
 
 print "Convert image to network type:"
 img = img*(255/img.max())
-img = binary(img, 40)
+#img = binary(img, 40)
 
 blobs = blobs_filter(find_blobs(img[:, :, 0]))
 print "Found " + str(len(blobs)) + " blobs"
@@ -180,8 +180,9 @@ start = time.time()
 #     current_pos += step
 for blob in blobs:
     blob_img = reproduce_blob(blob)
-    # plt.imshow(blob_img[:, :, 0])
-    # plt.show()
+    if len(sys.argv) > 2:
+        plt.imshow(blob_img[:, :, 0])
+        plt.show()
     out = net.forward_all(data=np.asarray([blob_img.transpose(2,0,1)]))
     result_list.append(out['prob'][0].argmax())
 
