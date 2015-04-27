@@ -17,7 +17,8 @@ def show_image(img):
     plt.axis("off")
     plt.show()
 
-chars = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
+chars = ['0','1','2','3','4','5','6','7','8','9']
+#['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
 
 def validate_point((x, y), img):
     return (x >= 0) and (y >= 0) and (x < img.shape[0]) and (y < img.shape[1] and (img[x,y] != -1))
@@ -111,6 +112,7 @@ def reproduce_blob(blob_points):
     tmp_img = caffe.io.resize_image(tmp_img, (28, 28))
     return tmp_img
 
+
 def binary(caffe_img, threshold=0):
     height, width = caffe_img.shape[:2]
     ret_img = np.zeros((height, width, 1), np.uint8)
@@ -136,7 +138,6 @@ print "Resize: "+str(height)+"x"+str(width)+" to 28x"+str(resized_width)
 
 print "Convert image to network type:"
 img = img*(255/img.max())
-#img = binary(img, 40)
 
 blobs = blobs_filter(find_blobs(img[:, :, 0]))
 print "Found " + str(len(blobs)) + " blobs"
@@ -148,8 +149,8 @@ print "Found " + str(len(blobs)) + " blobs"
 
 
 print "Load caffe network"
-MODEL_FILE = '/home/victor/Programming/caffe-master/examples/small_letters/lenet.prototxt'
-PRETRAINED = '/home/victor/Programming/caffe-master/examples/small_letters/lenet_iter_5000.caffemodel'
+MODEL_FILE = '/home/victor/Desktop/CAFFE_CNN/mnist/lenet.prototxt'
+PRETRAINED = '/home/victor/Desktop/CAFFE_CNN/mnist/lenet_iter_30000.caffemodel'
 net = caffe.Net(MODEL_FILE, PRETRAINED,caffe.TEST)
 caffe.set_mode_cpu()
 
@@ -167,14 +168,15 @@ start = time.time()
 #     current_pos += step
 for blob in blobs:
     blob_img = reproduce_blob(blob)
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 3:
         plt.imshow(blob_img[:, :, 0])
         plt.show()
     out = net.forward_all(data=np.asarray([blob_img.transpose(2,0,1)]))
-    result_list.append(chars[out['prob'][0].argmax()])
+    print out['prob'][0]
+    sorted_list = out['prob'][0].argsort()[-int(sys.argv[2]):][::-1]
+    result_list.append([chars[x] for x in sorted_list])
+
 
 end = time.time()
 print result_list
 print "Time elapsed: " + str(end - start) + " s"
-plt.imshow(orig_img[:,:,0])
-plt.show()
