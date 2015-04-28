@@ -4,10 +4,8 @@ import sys
 sys.path.append("/home/victor/Programming/caffe-master/python")
 import caffe
 import cv2
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import lmdb
 import time
 import math
 
@@ -22,11 +20,34 @@ chars = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r'
 def validate_point((x, y), img):
     return (x >= 0) and (y >= 0) and (x < img.shape[0]) and (y < img.shape[1] and (img[x,y] != -1))
 
+
+def find_closest_and_merge(blob, blobs):
+    cm_blob = np.array(blob_center_of_mass(blob))
+    distance = np.array([])
+    for current_blob in blobs:
+        cm_current_blob = np.array(blob_center_of_mass(current_blob))
+        diff = cm_current_blob-cm_blob
+        out=np.sqrt(diff.dot(diff))
+        distance = np.append(distance, [out])
+    blobs[distance.argmin()] += blob
+
+
+
 def blobs_filter(blobs):
+    main_blobs = []
+    aux_blobs = []
     blobs_average_points = sum([len(blob) for blob in blobs])/len(blobs)
-    if (blobs_average_points*0.3 < 20):
-        return 20 #we need at least 20 pts
-    return [blob for blob in blobs if len(blob) >= blobs_average_points*0.2]
+    print "Blobs_len: ", len(blobs)
+    if (blobs_average_points*0.3 > 20): # we need at least 20 pts
+        for blob in blobs:
+            if len(blob) >= blobs_average_points*0.2:
+                main_blobs.append(blob)
+            elif len(blob) >= blobs_average_points*0.05:
+                aux_blobs.append(blob)
+        for blob in aux_blobs:
+            find_closest_and_merge(blob, main_blobs)
+    return main_blobs
+
 
 def find_bounds(blob_points): # finds rectangular bound of the blob
     top, left = blob_points[0]
@@ -59,7 +80,7 @@ def find_blobs(img_orig):
                 for dy in range(-1, 2):
                     point = (way[step][0]+dx, way[step][1]+dy)
                     if validate_point(point, img):
-                        if img[point] == 255:
+                        if img[point] > 0:
                             blob_point = point
                             break
                         way.append(point) # new non-blob point
@@ -75,7 +96,7 @@ def find_blobs(img_orig):
                     for dy in range(-1, 2):
                         point = (blob_points[blob_step][0]+dx, blob_points[blob_step][1]+dy)
                         if validate_point(point, img):
-                            if img[point] == 255:
+                            if img[point] > 0:
                                 blob_points.append(point)
                             else:
                                 way.append(point)
@@ -95,6 +116,7 @@ def blob_center_of_mass(blob_points):
         sum_y += y
     return sum_x/len(blob_points), sum_y/len(blob_points)
 
+
 def reproduce_blob(blob_points):
     top, left, bottom, right = find_bounds(blob_points)
     center_x, center_y = blob_center_of_mass(blob_points)
@@ -110,6 +132,7 @@ def reproduce_blob(blob_points):
             tmp_img[x+dx, y+dy, 0] = 255
     tmp_img = caffe.io.resize_image(tmp_img, (28, 28))
     return tmp_img
+
 
 def binary(caffe_img, threshold=0):
     height, width = caffe_img.shape[:2]
@@ -129,27 +152,15 @@ print "Recognize ", image_file
 orig_img = caffe.io.load_image(image_file, color=False)
 img = orig_img
 
-height, width = img.shape[:2]
-resized_width = int(28.0/float(height)*width)
-print "Resize: "+str(height)+"x"+str(width)+" to 28x"+str(resized_width)
-#img = caffe.io.resize_image(img, (28, resized_width))
-
 print "Convert image to network type:"
 img = img*(255/img.max())
-#img = binary(img, 40)
 
 blobs = blobs_filter(find_blobs(img[:, :, 0]))
 print "Found " + str(len(blobs)) + " blobs"
-# for blob in blobs:
-#     img = np.zeros((28, 28, 1))
-#     reproduce_blob(blob, img)
-#     plt.imshow(img[:,:,0])
-#     plt.show()
-
 
 print "Load caffe network"
-MODEL_FILE = '/home/victor/Programming/caffe-master/examples/small_letters/lenet.prototxt'
-PRETRAINED = '/home/victor/Programming/caffe-master/examples/small_letters/lenet_iter_5000.caffemodel'
+MODEL_FILE = '/home/victor/Desktop/CAFFE_CNN/small_letters_CNN/lenet.prototxt'
+PRETRAINED = '/home/victor/Desktop/CAFFE_CNN/small_letters_CNN/lenet_iter_70000.caffemodel'
 net = caffe.Net(MODEL_FILE, PRETRAINED,caffe.TEST)
 caffe.set_mode_cpu()
 
@@ -165,6 +176,7 @@ start = time.time()
 #     out = net.forward_all(data=np.asarray([cut.transpose(2,0,1)]))
 #     result_list.append(out['prob'][0].argmax())
 #     current_pos += step
+print len(blobs)
 for blob in blobs:
     blob_img = reproduce_blob(blob)
     if len(sys.argv) > 2:
@@ -173,8 +185,7 @@ for blob in blobs:
     out = net.forward_all(data=np.asarray([blob_img.transpose(2,0,1)]))
     result_list.append(chars[out['prob'][0].argmax()])
 
+
 end = time.time()
 print result_list
 print "Time elapsed: " + str(end - start) + " s"
-plt.imshow(orig_img[:,:,0])
-plt.show()
