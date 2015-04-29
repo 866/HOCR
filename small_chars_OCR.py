@@ -151,7 +151,7 @@ print "Found " + str(len(blobs)) + " blobs"
 print "Load caffe network"
 MODEL_FILE = '/home/victor/Desktop/CAFFE_CNN/mnist/lenet.prototxt'
 PRETRAINED = '/home/victor/Desktop/CAFFE_CNN/mnist/lenet_iter_30000.caffemodel'
-net = caffe.Net(MODEL_FILE, PRETRAINED,caffe.TEST)
+net = caffe.Net(MODEL_FILE, PRETRAINED, caffe.TEST)
 caffe.set_mode_cpu()
 
 
@@ -171,7 +171,7 @@ for blob in blobs:
     if len(sys.argv) > 3:
         plt.imshow(blob_img[:, :, 0])
         plt.show()
-    out = net.forward_all(data=np.asarray([blob_img.transpose(2,0,1)]))
+    out = net.forward_all(data=np.asarray([blob_img.transpose(2, 0, 1)]))
     print out['prob'][0]
     sorted_list = out['prob'][0].argsort()[-int(sys.argv[2]):][::-1]
     result_list.append([chars[x] for x in sorted_list])

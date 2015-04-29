@@ -40,9 +40,9 @@ def blobs_filter(blobs):
     print "Blobs_len: ", len(blobs)
     if (blobs_average_points*0.3 > 20): # we need at least 20 pts
         for blob in blobs:
-            if len(blob) >= blobs_average_points*0.2:
+            if len(blob) >= blobs_average_points*0.35:
                 main_blobs.append(blob)
-            elif len(blob) >= blobs_average_points*0.05:
+            elif len(blob) >= blobs_average_points*0.03:
                 aux_blobs.append(blob)
         for blob in aux_blobs:
             find_closest_and_merge(blob, main_blobs)
@@ -159,8 +159,8 @@ blobs = blobs_filter(find_blobs(img[:, :, 0]))
 print "Found " + str(len(blobs)) + " blobs"
 
 print "Load caffe network"
-MODEL_FILE = '/home/victor/Desktop/CAFFE_CNN/small_letters_CNN/lenet.prototxt'
-PRETRAINED = '/home/victor/Desktop/CAFFE_CNN/small_letters_CNN/lenet_iter_70000.caffemodel'
+MODEL_FILE = '/home/victor/Programming/caffe-master/examples/small_letters_experimental/lenet.prototxt'
+PRETRAINED = '/home/victor/Programming/caffe-master/examples/small_letters_experimental/lenet_iter_20000.caffemodel'
 net = caffe.Net(MODEL_FILE, PRETRAINED,caffe.TEST)
 caffe.set_mode_cpu()
 
