@@ -34,12 +34,15 @@ def find_closest_and_merge(blob, blobs):
 
 
 def blobs_filter(blobs):
+    print "Filter"
     main_blobs = []
     aux_blobs = []
     blobs_average_points = sum([len(blob) for blob in blobs])/len(blobs)
     print "Blobs_len: ", len(blobs)
     if (blobs_average_points*0.3 > 20): # we need at least 20 pts
         for blob in blobs:
+            if len(blob) < 10:
+                continue
             if len(blob) >= blobs_average_points*0.35:
                 main_blobs.append(blob)
             elif len(blob) >= blobs_average_points*0.03:
