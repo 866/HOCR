@@ -23,9 +23,8 @@ lenets = { "digits" : ("/home/victor/Programming/caffe/examples/CAFFE_CNN/mnist/
 
 }
 
-print "Hi"
 cams = [cv2.VideoCapture(i) for i in range(MAX_CAM_NUM)]
-cam_num = 0
+cam_num = 1
 cnn_man = cnn.CnnLenetManager(lenets)
 img_man = cnn.ImageManager(cnn_man)
 cap = cams[cam_num]
@@ -71,10 +70,10 @@ while cap:
         width = cap.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH)
         roi = (int(width*0.1), int(height*0.15), int(width*0.9), int(height*0.35))
 
-    if key & 0xFF == ord('s'): # switch to next mode
+    if key & 0xFF == ord('s'):  # switch to next mode
         cnn_man.next_mode()
 
-    if key & 0xFF == ord('h'): # show mode change
+    if key & 0xFF == ord('h'):  # switch show mode
         if img_man.show_mode == "on":
             img_man.show_mode = "off"
         else:
